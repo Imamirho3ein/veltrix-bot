@@ -1,0 +1,19 @@
+name: keep-alive
+
+# Render free web services sleep after 15 minutes without inbound traffic.
+# A tiny ping every 10 minutes keeps the bot polling Telegram 24/7.
+# (Paid Starter instances do not need this.)
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          curl --fail --silent --show-error --max-time 60 \
+            https://veltrix-bot-t5n1.onrender.com/health
