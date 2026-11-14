@@ -1,0 +1,19 @@
+[Unit]
+Description=VELTRIX STUDIO Telegram bot (long polling)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=veltrixbot
+Group=veltrixbot
+WorkingDirectory=/opt/veltrix-bot
+ExecStart=/usr/bin/npm start
+Environment=NODE_ENV=production
+Restart=always
+RestartSec=5
+# Keep the data directory writable by the service user:
+# chown -R veltrixbot:veltrixbot /opt/veltrix-bot/data
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,46 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# IMPORTANT:
+#   * A web service on the Free plan sleeps after 15 minutes without traffic and
+#     cannot have a persistent disk. For a 24/7 order-taking bot you need a paid
+#     instance (Starter, ~$7/mo) + a disk (1 GB, $0.25/mo).
+#   * The disk keeps data/ (orders, tickets, sessions) across deploys.
+#   * The bot exposes GET /health only because Render web services require a
+#     bound port; Telegram traffic itself uses long polling (no public URL needed).
+services:
+  - type: web
+    name: veltrix-bot
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_TELEGRAM_IDS
+        value: "8917877282"
+      - key: TELEGRAM_CHANNEL_ID
+        value: "@VeeltrixStudio"
+      - key: FORCE_CHANNEL_JOIN
+        value: "true"
+      - key: TELEGRAM_CHANNEL_URL
+        value: "https://t.me/VeeltrixStudio"
+      - key: TELEGRAM_SUPPORT_URL
+        value: "https://t.me/ImAmirh3ein"
+      - key: SITE_URL
+        value: "https://veltrixstudio.com"
+      - key: BRAND_NAME
+        value: VELTRIX STUDIO
+      - key: INSTAGRAM_URL
+        value: "https://instagram.com/veltrixstudio"
+      - key: CONTACT_EMAIL
+        value: "hello@veltrixstudio.com"
+      - key: TELEGRAM_API_PROXY
+        value: ""
+    disk:
+      name: veltrix-data
+      mountPath: /app/data
+      sizeGB: 1
