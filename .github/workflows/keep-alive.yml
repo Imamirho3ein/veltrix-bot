@@ -1,19 +1,62 @@
 name: keep-alive
 
 # Render free web services sleep after 15 minutes without inbound traffic.
-# A tiny ping every 10 minutes keeps the bot polling Telegram 24/7.
-# (Paid Starter instances do not need this.)
+# GitHub's cron scheduler is notoriously unreliable (a "*/10" cron may only run
+# a few times per day), so we do NOT rely on cron timing alone.
+#
+# Instead, every run of this workflow pings /health every 5 minutes for ~5
+# hours, then re-triggers itself via workflow_dispatch before exiting. The
+# result is a self-perpetuating chain of runs that keeps the bot awake 24/7.
+#
+#   * schedule  -> re-boots the chain if it ever breaks (best effort)
+#   * push      -> re-boots the chain on every deploy
+#   * dispatch  -> how the chain continues itself
+#
+# Public repos get unlimited Actions minutes, so this costs nothing.
+# Cancellation rules keep exactly one chain alive (see concurrency below):
+# a cancelled run does NOT re-dispatch, so chains never multiply.
 
 on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 330 # job limit; loop finishes well before this
     steps:
-      - name: Ping health endpoint
+      - name: Ping health endpoint every 5 minutes for ~5 hours
         run: |
-          curl --fail --silent --show-error --max-time 60 \
-            https://veltrix-bot-t5n1.onrender.com/health
+          URL="https://veltrix-bot-t5n1.onrender.com/health"
+          LOOP_MINUTES=300
+          end=$((SECONDS + LOOP_MINUTES * 60))
+          while [ $SECONDS -lt $end ]; do
+            code=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+              --max-time 60 "$URL" || true)
+            echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') -> HTTP $code"
+            # A failed ping is not fatal; Render just needs regular traffic.
+            sleep 300
+          done
+
+      - name: Chain the next run
+        if: success() # never on cancellation, so chains do not multiply
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/keep-alive.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "Next keep-alive run dispatched."
