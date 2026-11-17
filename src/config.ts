@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 
 function clean(value: string | undefined): string {
   return (value ?? "").trim();
@@ -16,11 +16,11 @@ export const env = {
   forceJoin: (clean(process.env.FORCE_CHANNEL_JOIN) || "true").toLowerCase() !== "false",
   proxy: proxy || undefined,
   brandName: clean(process.env.BRAND_NAME) || "VELTRIX STUDIO",
-  siteUrl: (clean(process.env.SITE_URL) || "https://veltrixstudio.com").replace(/\/+$/, ""),
+  siteUrl: (clean(process.env.SITE_URL) || "https://veltrixstudio.ir").replace(/\/+$/, ""),
   channelUrl: clean(process.env.TELEGRAM_CHANNEL_URL) || "https://t.me/VeeltrixStudio",
   supportUrl: clean(process.env.TELEGRAM_SUPPORT_URL) || "https://t.me/ImAmirh3ein",
   instagramUrl: clean(process.env.INSTAGRAM_URL) || "https://instagram.com/veltrixstudio",
-  email: clean(process.env.CONTACT_EMAIL) || "hello@veltrixstudio.com",
+  email: clean(process.env.CONTACT_EMAIL) || "hello@veltrixstudio.ir",
   phone: clean(process.env.CONTACT_PHONE),
 };
 

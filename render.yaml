@@ -1,4 +1,4 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
+﻿# Render Blueprint â€” https://render.com/docs/blueprint-spec
 #
 # IMPORTANT:
 #   * A web service on the Free plan sleeps after 15 minutes without traffic and
@@ -31,13 +31,13 @@ services:
       - key: TELEGRAM_SUPPORT_URL
         value: "https://t.me/ImAmirh3ein"
       - key: SITE_URL
-        value: "https://veltrixstudio.com"
+        value: "https://veltrixstudio.ir"
       - key: BRAND_NAME
         value: VELTRIX STUDIO
       - key: INSTAGRAM_URL
         value: "https://instagram.com/veltrixstudio"
       - key: CONTACT_EMAIL
-        value: "hello@veltrixstudio.com"
+        value: "hello@veltrixstudio.ir"
       - key: TELEGRAM_API_PROXY
         value: ""
     disk:
