@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { Order, OrderStatus, Settings, Ticket } from "./types.js";
+import type { Order, OrderStatus, Referral, Settings, Ticket } from "./types.js";
 import { env } from "./config.js";
 
 export const DATA_DIR = process.env.DATA_DIR
@@ -12,6 +12,7 @@ const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const ADMINS_FILE = path.join(DATA_DIR, "admins.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const TICKETS_FILE = path.join(DATA_DIR, "tickets.json");
+const REFERRALS_FILE = path.join(DATA_DIR, "referrals.json");
 const EXPORT_DIR = path.join(DATA_DIR, "exports");
 
 let lock: Promise<unknown> = Promise.resolve();
@@ -118,6 +119,45 @@ export async function createOrder(
     await writeJson(ORDERS_FILE, orders);
     return order;
   });
+}
+
+// ---------------------------------------------------------------------------
+// Referrals: deep-link payloads such as ads_3 that came from advertising
+// campaigns (see the separate veltrix-ads bot). Each (payload, user) pair is
+// recorded once so the first click counts as "new lead".
+// ---------------------------------------------------------------------------
+
+export async function recordReferral(
+  payload: string,
+  user: { id: number; username?: string; first_name?: string },
+): Promise<{ isFirst: boolean; totalForPayload: number }> {
+  return serialize(async () => {
+    const referrals = await readJson<Referral[]>(REFERRALS_FILE, []);
+    const isFirst = !referrals.some(
+      (referral) => referral.payload === payload && referral.telegramId === user.id,
+    );
+    if (isFirst) {
+      referrals.push({
+        payload,
+        telegramId: user.id,
+        username: user.username,
+        firstName: user.first_name,
+        createdAt: new Date().toISOString(),
+      });
+      await writeJson(REFERRALS_FILE, referrals);
+    }
+    const totalForPayload = referrals.filter((referral) => referral.payload === payload).length;
+    return { isFirst, totalForPayload };
+  });
+}
+
+export async function referralSummary(): Promise<Record<string, number>> {
+  const referrals = await readJson<Referral[]>(REFERRALS_FILE, []);
+  const summary: Record<string, number> = {};
+  for (const referral of referrals) {
+    summary[referral.payload] = (summary[referral.payload] ?? 0) + 1;
+  }
+  return summary;
 }
 
 export async function updateOrder(

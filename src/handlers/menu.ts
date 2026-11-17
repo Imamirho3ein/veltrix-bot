@@ -4,6 +4,7 @@ import { env } from "../config.js";
 import { aboutText, faq } from "../data.js";
 import { faqListKeyboard, homeRow, mainMenu } from "../keyboards.js";
 import { answer, editOrSend, escapeHtml } from "../ui.js";
+import { isAdmin, referralSummary } from "../store.js";
 
 export function welcomeText(name?: string): string {
   return `سلام${name ? ` ${escapeHtml(name)}` : ""} 👋
@@ -51,6 +52,28 @@ export function registerMenu(bot: Bot<BotContext>): void {
   bot.command("myid", async (ctx) => {
     await ctx.reply(
       `🆔 شناسهٔ تلگرام شما:\n<code>${ctx.from?.id ?? "—"}</code>\n\nاین عدد را در فایل <code>.env</code> مقابل <code>ADMIN_TELEGRAM_IDS</code> قرار دهید تا پنل مدیریت فعال شود.`,
+      { parse_mode: "HTML" },
+    );
+  });
+
+  bot.command("refstats", async (ctx) => {
+    if (!ctx.from || !(await isAdmin(ctx.from.id))) {
+      await ctx.reply("⛔️ این دستور فقط برای مدیران است.");
+      return;
+    }
+    const summary = await referralSummary();
+    const entries = Object.entries(summary).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) {
+      await ctx.reply(
+        "📈 هنوز هیچ لیدی از کمپین‌های تبلیغاتی ثبت نشده.\n\nربات تبلیغات (veltrix-ads) پست‌ها را با لینک‌های ردیابی‌دار ارسال می‌کند؛ با اولین کلیک، اینجا می‌بینی.",
+        { parse_mode: "HTML" },
+      );
+      return;
+    }
+    const total = entries.reduce((sum, [, count]) => sum + count, 0);
+    const lines = entries.map(([payload, count]) => `• <code>${escapeHtml(payload)}</code> — ${count}`);
+    await ctx.reply(
+      `📈 <b>عملکرد کمپین‌های تبلیغاتی</b>\n\nکل لیدها: <b>${total}</b>\n\n${lines.join("\n")}`,
       { parse_mode: "HTML" },
     );
   });

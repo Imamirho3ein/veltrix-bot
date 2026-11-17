@@ -1,9 +1,10 @@
 import type { Bot } from "grammy";
 import type { BotContext } from "./session.js";
 import { env } from "./config.js";
-import { isAdmin } from "./store.js";
+import { isAdmin, recordReferral } from "./store.js";
 import { joinKeyboard, mainMenu } from "./keyboards.js";
 import { welcomeText } from "./handlers/menu.js";
+import { notifyAdminsNewReferral } from "./notify.js";
 import { answer, editOrSend, escapeHtml } from "./ui.js";
 
 const CACHE_TTL_MS = 60_000;
@@ -69,6 +70,34 @@ export function registerMembership(bot: Bot<BotContext>): void {
     if (!from || from.is_bot) return next();
     if (!ctx.message && !ctx.callbackQuery) return next();
     if (ctx.callbackQuery?.data === "check:join") return next();
+
+    // Deep-link referral capture (ads campaigns). Runs before the join gate so
+    // the lead is recorded even when the user still has to join the channel.
+    const referralPayload = ctx.message?.text?.match(/^\/start\s+(ads_[\w-]+)\s*$/i)?.[1];
+    if (referralPayload && from) {
+      try {
+        const { isFirst, totalForPayload } = await recordReferral(referralPayload.toLowerCase(), {
+          id: from.id,
+          username: from.username,
+          first_name: from.first_name,
+        });
+        if (isFirst) {
+          await notifyAdminsNewReferral(
+            bot,
+            {
+              payload: referralPayload.toLowerCase(),
+              telegramId: from.id,
+              username: from.username,
+              firstName: from.first_name,
+              createdAt: new Date().toISOString(),
+            },
+            totalForPayload,
+          );
+        }
+      } catch (error) {
+        console.warn("[bot] could not record referral", error);
+      }
+    }
 
     if (await isAdmin(from.id)) return next();
     if (await isChannelMember(bot, from.id)) return next();

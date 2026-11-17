@@ -53,3 +53,11 @@ export interface Settings {
   channelId?: string;
   [key: string]: string | undefined;
 }
+
+export interface Referral {
+  payload: string;
+  telegramId: number;
+  username?: string;
+  firstName?: string;
+  createdAt: string;
+}
